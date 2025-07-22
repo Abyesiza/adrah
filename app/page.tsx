@@ -1,84 +1,94 @@
 'use client';
 
-import React from 'react';
-import { Container, Typography, Box, Paper, Card, CardContent, Button, Chip } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Container, Typography, Box, Paper, Card, CardContent, useTheme } from '@mui/material';
 import LayoutWithInput from './layout-with-input';
 
 export default function HomePage() {
+  const theme = useTheme();
+  const [isClient, setIsClient] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Ensure we're on the client side to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+    // Set mobile state after client-side detection
+    const mediaQuery = window.matchMedia('(max-width: 600px)');
+    setIsMobile(mediaQuery.matches);
+    
+    const handleResize = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
+
   return (
     <LayoutWithInput>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h2" component="h1" gutterBottom align="center">
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 3 } }}>
+        <Typography variant="h2" component="h1" gutterBottom align="center" sx={{ fontSize: { xs: '2rem', sm: '2.5rem' } }}>
           Welcome to Adrah
         </Typography>
         
-        <Typography variant="h5" color="text.secondary" align="center" sx={{ mb: 6 }}>
-          Experience the future of intelligent navigation with AI-powered routing
+        <Typography variant="h5" color="text.secondary" align="center" sx={{ mb: { xs: 3, sm: 6 }, fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
+          AI-powered intelligent navigation
         </Typography>
 
         {/* Hero Section */}
-        <Paper elevation={3} sx={{ p: 6, mb: 6, textAlign: 'center', borderRadius: 4 }}>
-          <Typography variant="h3" gutterBottom>
-            🎯 Smart Navigation, Powered by AI
+        <Paper elevation={3} sx={{ p: { xs: 3, sm: 6 }, mb: { xs: 3, sm: 6 }, textAlign: 'center', borderRadius: 4 }}>
+          <Typography variant="h3" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.5rem' } }}>
+            🎯 Smart Navigation
           </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-            Simply describe what you want to do, and our AI will take you there instantly.
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 4, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+            Describe what you want to do, and our AI will take you there instantly.
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              'Show me the dashboard',
-              'I need to contact support',
-              'Tell me about the company',
-              'View my analytics',
-            ].map((example, index) => (
-              <Chip
-                key={index}
-                label={example}
-                color="primary"
-                variant="outlined"
-                sx={{ fontSize: '1rem', p: 1 }}
-              />
-            ))}
-          </Box>
         </Paper>
 
         {/* Features Grid */}
-        <Box sx={{ display: 'flex', gap: 4, mb: 6, flexWrap: 'wrap' }}>
+        <Box 
+          sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+            gap: { xs: 2, sm: 4 }, 
+            mb: { xs: 3, sm: 6 }
+          }}
+        >
           {[
             {
-              title: 'Voice & Text Input',
-              description: 'Speak naturally or type your requests. Our AI understands both.',
+              title: 'Voice & Text',
+              description: 'Speak or type naturally',
               icon: '🎤',
               color: 'primary'
             },
             {
-              title: 'Intelligent Routing',
-              description: 'AI analyzes your intent and routes you to the right page instantly.',
+              title: 'Smart Routing',
+              description: 'AI understands your intent',
               icon: '🧠',
               color: 'success'
             },
             {
-              title: 'Always Accessible',
-              description: 'The input stays with you on every page for seamless navigation.',
+              title: 'Always Here',
+              description: 'Input stays with you everywhere',
               icon: '📍',
               color: 'info'
             },
             {
-              title: 'Smart Suggestions',
-              description: 'Get helpful suggestions and quick actions based on your needs.',
+              title: 'Smart Help',
+              description: 'Get suggestions and quick actions',
               icon: '💡',
               color: 'warning'
             }
           ].map((feature, index) => (
-            <Card key={index} elevation={2} sx={{ flex: 1, minWidth: 250 }}>
-              <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                <Typography variant="h1" sx={{ mb: 2 }}>
+            <Card key={index} elevation={2} sx={{ minWidth: 0 }}>
+              <CardContent sx={{ textAlign: 'center', p: { xs: 2, sm: 3 } }}>
+                <Typography variant="h1" sx={{ mb: 2, fontSize: { xs: '2.5rem', sm: '3rem' } }}>
                   {feature.icon}
                 </Typography>
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
                   {feature.title}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                   {feature.description}
                 </Typography>
               </CardContent>
@@ -86,110 +96,37 @@ export default function HomePage() {
           ))}
         </Box>
 
-        {/* How It Works */}
-        <Paper elevation={3} sx={{ p: 4, mb: 6, borderRadius: 3 }}>
-          <Typography variant="h4" gutterBottom align="center">
-            How It Works
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              { step: '1', title: 'Describe', desc: 'Tell us what you want to do' },
-              { step: '2', title: 'Analyze', desc: 'AI understands your intent' },
-              { step: '3', title: 'Route', desc: 'Navigate to the right page' },
-              { step: '4', title: 'Complete', desc: 'Get what you need instantly' },
-            ].map((step, index) => (
-              <Box key={index} sx={{ textAlign: 'center', minWidth: 150 }}>
-                <Box
-                  sx={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: '50%',
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold',
-                    mx: 'auto',
-                    mb: 2
-                  }}
-                >
-                  {step.step}
-                </Box>
-                <Typography variant="h6" gutterBottom>
-                  {step.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {step.desc}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Paper>
-
         {/* Available Pages */}
-        <Typography variant="h4" gutterBottom align="center" sx={{ mb: 4 }}>
+        <Typography variant="h4" gutterBottom align="center" sx={{ mb: { xs: 2, sm: 4 }, fontSize: { xs: '1.3rem', sm: '2rem' } }}>
           Explore Our Pages
         </Typography>
         
-        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center', mb: 6 }}>
+        <Box 
+          sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+            gap: { xs: 2, sm: 3 }, 
+            mb: { xs: 3, sm: 6 }
+          }}
+        >
           {[
-            { name: 'Dashboard', desc: 'Main control panel and overview', keywords: ['dashboard', 'main', 'overview'] },
-            { name: 'About', desc: 'Learn about our company and team', keywords: ['about', 'company', 'team'] },
-            { name: 'Contact', desc: 'Get in touch and find support', keywords: ['contact', 'support', 'help'] },
-            { name: 'Analytics', desc: 'View data and insights', keywords: ['analytics', 'data', 'reports'] },
+            { name: 'Dashboard', desc: 'Main control panel' },
+            { name: 'About', desc: 'Company and team info' },
+            { name: 'Contact', desc: 'Get support and help' },
+            { name: 'Analytics', desc: 'Data and insights' },
           ].map((page, index) => (
-            <Card key={index} elevation={2} sx={{ minWidth: 200, textAlign: 'center' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+            <Card key={index} elevation={2} sx={{ textAlign: 'center', minWidth: 0 }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
                   {page.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                   {page.desc}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {page.keywords.map((keyword, kIndex) => (
-                    <Chip
-                      key={kIndex}
-                      label={keyword}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.7rem' }}
-                    />
-                  ))}
-                </Box>
               </CardContent>
             </Card>
           ))}
         </Box>
-
-        {/* Try It Now */}
-        <Paper elevation={3} sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
-          <Typography variant="h4" gutterBottom>
-            Ready to Try It?
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-            Use the AI assistant below to navigate anywhere on our site. Just describe what you want to do!
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              'Take me to the dashboard',
-              'I want to learn about the company',
-              'Help me contact support',
-              'Show me some analytics',
-            ].map((suggestion, index) => (
-              <Button
-                key={index}
-                variant="contained"
-                size="large"
-                sx={{ textTransform: 'none' }}
-              >
-                {suggestion}
-              </Button>
-            ))}
-          </Box>
-        </Paper>
       </Container>
     </LayoutWithInput>
   );

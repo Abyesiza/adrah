@@ -1,9 +1,6 @@
 'use client';
 
-// Analytics page - Updated for mobile responsiveness and Material UI v7 compatibility
-// Uses CSS Grid layouts instead of Material UI Grid components for better mobile experience
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -15,7 +12,6 @@ import {
   Chip,
   LinearProgress,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -27,7 +23,24 @@ import LayoutWithInput from '../layout-with-input';
 
 export default function AnalyticsPage() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isClient, setIsClient] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Ensure we're on the client side to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+    // Set mobile state after client-side detection
+    const mediaQuery = window.matchMedia('(max-width: 600px)');
+    setIsMobile(mediaQuery.matches);
+    
+    const handleResize = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
+
   return (
     <LayoutWithInput>
       <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 3 } }}>
@@ -210,32 +223,6 @@ export default function AnalyticsPage() {
             </Button>
           ))}
         </Box>
-
-        {/* AI Suggestions */}
-        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, textAlign: 'center', borderRadius: 3 }}>
-          <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.2rem', sm: '1.7rem' } }}>
-            Need Specific Analytics?
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
-            Ask our AI assistant to show you specific data or generate custom reports.
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              'Show me user growth trends',
-              'Generate revenue report',
-              'Analyze conversion rates',
-              'Compare performance metrics',
-            ].map((suggestion, index) => (
-              <Chip
-                key={index}
-                label={suggestion}
-                color="primary"
-                variant="outlined"
-                sx={{ fontSize: { xs: '0.9rem', sm: '1rem' }, p: 1, mb: 1 }}
-              />
-            ))}
-          </Box>
-        </Paper>
       </Container>
     </LayoutWithInput>
   );

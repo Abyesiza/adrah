@@ -1,9 +1,6 @@
 'use client';
 
-// Contact page - Updated for mobile responsiveness and Material UI v7 compatibility
-// Uses CSS Grid layouts instead of Material UI Grid components for better mobile experience
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -19,7 +16,6 @@ import {
   ListItemText,
   Divider,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   Email as EmailIcon,
@@ -32,7 +28,23 @@ import LayoutWithInput from '../layout-with-input';
 
 export default function ContactPage() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isClient, setIsClient] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Ensure we're on the client side to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+    // Set mobile state after client-side detection
+    const mediaQuery = window.matchMedia('(max-width: 600px)');
+    setIsMobile(mediaQuery.matches);
+    
+    const handleResize = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
 
   return (
     <LayoutWithInput>
@@ -221,38 +233,6 @@ export default function ContactPage() {
             </Card>
           ))}
         </Box>
-
-        {/* FAQ Section */}
-        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, mt: { xs: 3, sm: 4 } }}>
-          <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.3rem', sm: '2rem' } }}>
-            Frequently Asked Questions
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {[
-              {
-                question: 'How do I get started with the AI navigation?',
-                answer: 'Simply use the input box at the bottom of any page to describe what you want to do in natural language.'
-              },
-              {
-                question: 'Is my data secure?',
-                answer: 'Yes, we take security seriously. All data is encrypted and we follow industry best practices.'
-              },
-              {
-                question: 'Can I customize the AI assistant?',
-                answer: 'Currently, the AI assistant is pre-configured, but we\'re working on customization options.'
-              },
-            ].map((faq, index) => (
-              <Box key={index} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 2 }}>
-                <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
-                  {faq.question}
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }}>
-                  {faq.answer}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Paper>
       </Container>
     </LayoutWithInput>
   );

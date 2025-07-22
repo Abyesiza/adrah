@@ -21,6 +21,111 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if this is a welcome message request
+    if (userInput.toLowerCase().includes('welcome message') || userInput.toLowerCase().includes('new user')) {
+      const welcomePrompt = `You are an AI assistant for a website called Adrah. A new user has just arrived and needs a friendly, welcoming message that explains how to use the AI navigation system.
+
+Please create a natural, conversational welcome message that:
+1. Welcomes the user to Adrah
+2. Explains that you're an AI assistant that can help with navigation
+3. Mentions they can type or speak their requests
+4. Gives 2-3 simple examples of what they can say
+5. Keeps it friendly and encouraging
+6. Is concise but informative (around 2-3 sentences)
+
+Respond with a JSON object in this exact format:
+{
+  "intent": {
+    "route": "/",
+    "confidence": 1.0,
+    "description": "Welcome message for new user",
+    "keywords": ["welcome", "new user", "introduction"]
+  },
+  "reasoning": "This is a welcome message request for a new user",
+  "suggestedActions": ["Try saying 'show me the dashboard'", "Ask 'what can you help me with?'", "Say 'I need to contact support'"],
+  "ttsMessage": "Your friendly welcome message here"
+}
+
+Make the TTS message natural and conversational, not robotic.`;
+
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: welcomePrompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', errorText);
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error('Invalid response from Gemini API');
+      }
+
+      const aiResponse = data.candidates[0].content.parts[0].text;
+      
+      // Try to parse the JSON response
+      let parsedResponse;
+      try {
+        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedResponse = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', aiResponse);
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      // Ensure TTS message exists, fallback if not
+      if (!parsedResponse.ttsMessage) {
+        parsedResponse.ttsMessage = "Welcome to Adrah! I'm your AI assistant. You can type or speak what you want to do, and I'll take you there. Try saying something like 'show me the dashboard' or 'I need to contact support'.";
+      }
+
+      return NextResponse.json(parsedResponse);
+    }
+
     // Define available routes for the AI to choose from
     const availableRoutes = {
       '/': 'Home page - general information and overview',
@@ -61,16 +166,15 @@ Rules:
 6. Create a natural, conversational TTS message that:
    - Acknowledges what the user said
    - Explains what you understood
-   - Mentions the confidence level naturally
    - Describes the destination page
-   - If confidence > 0.7, indicate you'll take them there
-   - If confidence < 0.7, ask if they want to proceed or try again
+   - If confidence >= 0.5, indicate you'll take them there automatically
+   - If confidence < 0.5, ask if they want to proceed or try again
    - Keep it conversational and friendly, not robotic
 7. If the user's intent is unclear, default to "/" with lower confidence
 
 Example TTS messages:
-- High confidence: "I understand you want to see the dashboard. I'm 85% confident that's what you're looking for. I'll take you there now."
-- Low confidence: "I think you might want to contact support, but I'm only 60% sure. Would you like me to take you to the contact page, or would you prefer to try a different request?"
+- High confidence: "I understand you want to see the dashboard. I'll take you there now."
+- Low confidence: "I think you might want to contact support, but I'm not entirely sure. Would you like me to take you to the contact page, or would you prefer to try a different request?"
 
 Respond only with the JSON object, no additional text.`;
 
@@ -163,10 +267,10 @@ Respond only with the JSON object, no additional text.`;
       const confidencePct = Math.round(parsedResponse.intent.confidence * 100);
       const routeName = parsedResponse.intent.route === '/' ? 'home' : parsedResponse.intent.route.replace('/', '');
       
-      if (parsedResponse.intent.confidence > 0.7) {
-        parsedResponse.ttsMessage = `I understand you want to visit the ${routeName} page. I'm ${confidencePct}% confident that's what you're looking for. I'll take you there now.`;
+      if (parsedResponse.intent.confidence >= 0.5) {
+        parsedResponse.ttsMessage = `I understand you want to visit the ${routeName} page. I'll take you there now.`;
       } else {
-        parsedResponse.ttsMessage = `I think you might want the ${routeName} page, but I'm only ${confidencePct}% sure. Would you like me to take you there, or would you prefer to try a different request?`;
+        parsedResponse.ttsMessage = `I think you might want the ${routeName} page, but I'm not entirely sure. Would you like me to take you there, or would you prefer to try a different request?`;
       }
     }
 

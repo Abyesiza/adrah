@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -11,13 +11,28 @@ import {
   Avatar,
   Chip,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import LayoutWithInput from '../layout-with-input';
 
 export default function AboutPage() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isClient, setIsClient] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Ensure we're on the client side to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+    // Set mobile state after client-side detection
+    const mediaQuery = window.matchMedia('(max-width: 600px)');
+    setIsMobile(mediaQuery.matches);
+    
+    const handleResize = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
 
   return (
     <LayoutWithInput>
@@ -122,7 +137,7 @@ export default function AboutPage() {
                 label={value}
                 color="primary"
                 variant="outlined"
-                sx={{ cursor: 'pointer', fontSize: { xs: '0.9rem', sm: '1rem' }, p: 1, mb: 1 }}
+                sx={{ fontSize: { xs: '0.9rem', sm: '1rem' }, p: 1, mb: 1 }}
               />
             ))}
           </Box>

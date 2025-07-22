@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -10,9 +10,7 @@ import {
   CardContent,
   Button,
   Chip,
-  LinearProgress,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -24,7 +22,23 @@ import LayoutWithInput from '../layout-with-input';
 
 export default function DashboardPage() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isClient, setIsClient] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Ensure we're on the client side to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+    // Set mobile state after client-side detection
+    const mediaQuery = window.matchMedia('(max-width: 600px)');
+    setIsMobile(mediaQuery.matches);
+    
+    const handleResize = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
 
   return (
     <LayoutWithInput>
@@ -124,11 +138,13 @@ export default function DashboardPage() {
                       <Typography variant="body2" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>{metric.label}</Typography>
                       <Typography variant="body2" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>{metric.value}%</Typography>
                     </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={metric.value}
-                      color={metric.color as any}
-                      sx={{ height: 8, borderRadius: 4 }}
+                    <Box
+                      sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: `${metric.color}.main`,
+                        opacity: 0.7,
+                      }}
                     />
                   </Box>
                 ))}
@@ -188,32 +204,6 @@ export default function DashboardPage() {
             </Paper>
           </Box>
         </Box>
-
-        {/* Bottom Section */}
-        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, mt: { xs: 2, sm: 4 }, textAlign: 'center' }}>
-          <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.2rem', sm: '1.7rem' } }}>
-            Need Something Specific?
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
-            Use the AI assistant below to quickly navigate to any section or get help with specific tasks.
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              'Show me analytics',
-              'I need help',
-              'Update my profile',
-              'Contact support',
-            ].map((suggestion, index) => (
-              <Chip
-                key={index}
-                label={suggestion}
-                color="primary"
-                variant="outlined"
-                sx={{ cursor: 'pointer', fontSize: { xs: '0.9rem', sm: '1rem' }, p: 1, mb: 1 }}
-              />
-            ))}
-          </Box>
-        </Paper>
       </Container>
     </LayoutWithInput>
   );

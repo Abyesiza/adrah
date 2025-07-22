@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -12,8 +12,12 @@ import {
   Alert,
   CircularProgress,
   useTheme,
-  useMediaQuery,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import {
+  Help as HelpIcon,
+} from '@mui/icons-material';
 import InputComponent from './input';
 import { analyzeWithLLM, LLMRouteResponse } from '@/lib/llm-router';
 
@@ -21,9 +25,7 @@ interface PersistentInputProps {
   className?: string;
 }
 
-const WELCOME_KEY = 'adrah_llm_router_welcome_v2';
-const WELCOME_MESSAGE =
-  "Welcome to Adrah! I'm powered by AI to help you navigate. You can type or speak what you want to do, and I'll intelligently route you to the right page. For example, say 'Show me the dashboard' or 'I need to contact support'. I'll always be here at the bottom to help you navigate.";
+const WELCOME_KEY = 'adrah_llm_router_welcome_v4';
 
 // Try to select a smooth, female English voice
 function getPreferredVoice(): SpeechSynthesisVoice | null {
@@ -77,48 +79,103 @@ function speak(text: string) {
 const PersistentInput: React.FC<PersistentInputProps> = ({ className }) => {
   const router = useRouter();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isClient, setIsClient] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<LLMRouteResponse | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUsingAI, setIsUsingAI] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const hasWelcomed = useRef(false);
 
-  // Initial welcome/explanation (only once per session)
+  // Ensure we're on the client side and set mobile state
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!window.localStorage.getItem(WELCOME_KEY)) {
-      speak(WELCOME_MESSAGE);
-      window.localStorage.setItem(WELCOME_KEY, '1');
-      hasWelcomed.current = true;
-    }
+    setIsClient(true);
+    // Set mobile state after client-side detection
+    const mediaQuery = window.matchMedia('(max-width: 600px)');
+    setIsMobile(mediaQuery.matches);
+    
+    const handleResize = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleResize);
+    return () => mediaQuery.removeEventListener('change', handleResize);
   }, []);
 
-  // Speak routing feedback after analysis
+  // Generate welcome message using LLM
+  const generateWelcomeMessage = useCallback(async (): Promise<string> => {
+    try {
+      const response = await fetch('/api/analyze-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userInput: 'Create a friendly welcome message for a new user explaining how to use this AI navigation system. The user can type or speak their requests, and the AI will intelligently route them to the right page. Available pages are: home, dashboard, about, contact, analytics. Make it warm, encouraging, and give 2-3 specific examples of what they can say.'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.ttsMessage || 'Welcome to Adrah! I\'m your AI assistant. You can type or speak what you want to do, and I\'ll take you there. Try saying something like "show me the dashboard" or "I need to contact support".';
+      }
+    } catch (error) {
+      console.error('Error generating welcome message:', error);
+    }
+    
+    // Fallback welcome message
+    return 'Welcome to Adrah! I\'m your AI assistant. You can type or speak what you want to do, and I\'ll take you there. Try saying something like "show me the dashboard" or "I need to contact support".';
+  }, []);
+
+  // Generate help message using LLM
+  const generateHelpMessage = useCallback(async (): Promise<string> => {
+    try {
+      const response = await fetch('/api/analyze-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userInput: 'Create a friendly welcome message for a new user explaining how to use this AI navigation system. The user can type or speak their requests, and the AI will intelligently route them to the right page. Available pages are: home, dashboard, about, contact, analytics. Make it warm, encouraging, and give 2-3 specific examples of what they can say.'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.ttsMessage || 'Welcome to Adrah! I\'m your AI assistant. You can type or speak what you want to do, and I\'ll take you there. Try saying something like "show me the dashboard" or "I need to contact support".';
+      }
+    } catch (error) {
+      console.error('Error generating help message:', error);
+    }
+    
+    // Fallback help message
+    return 'Welcome to Adrah! I\'m your AI assistant. You can type or speak what you want to do, and I\'ll take you there. Try saying something like "show me the dashboard" or "I need to contact support".';
+  }, []);
+
+  // Initial welcome/explanation (only once per session) - client-side only
   useEffect(() => {
+    if (!isClient) return;
+    if (!window.localStorage.getItem(WELCOME_KEY)) {
+      generateWelcomeMessage().then(welcomeMessage => {
+        speak(welcomeMessage);
+        window.localStorage.setItem(WELCOME_KEY, '1');
+        hasWelcomed.current = true;
+      });
+    }
+  }, [isClient, generateWelcomeMessage]);
+
+  // Speak routing feedback after analysis - client-side only
+  useEffect(() => {
+    if (!isClient) return;
     if (analysisResult && showSuggestions && !isAnalyzing) {
-      // Use the dynamic TTS message from Gemini if available, otherwise fallback to the old logic
+      // Use the dynamic TTS message from Gemini
       if (analysisResult.ttsMessage) {
         speak(analysisResult.ttsMessage);
-      } else {
-        // Fallback to the old hardcoded logic
-        const { intent } = analysisResult;
-        const confidencePct = Math.round(intent.confidence * 100);
-        const routeName = intent.route === '/' ? 'home' : intent.route.replace('/', '');
-        
-        let msg = `I analyzed your request using ${isUsingAI ? 'AI' : 'keyword matching'}. I am ${confidencePct} percent confident you want the ${routeName} page.`;
-        
-        if (intent.confidence > 0.7) {
-          msg += ' I will take you there now.';
-        } else {
-          msg += ' Would you like me to take you there, or would you prefer to try a different request?';
-        }
-        
-        speak(msg);
       }
     }
-  }, [analysisResult, showSuggestions, isAnalyzing, isUsingAI]);
+  }, [analysisResult, showSuggestions, isAnalyzing, isClient]);
 
   const handleUserInput = async (message: string) => {
     if (!message.trim()) return;
@@ -133,7 +190,8 @@ const PersistentInput: React.FC<PersistentInputProps> = ({ className }) => {
       setAnalysisResult(result);
       setIsUsingAI(true); // If we get here, the AI API worked
       
-      if (result.intent.confidence > 0.7) {
+      // Auto-navigate if confidence is 50% or above
+      if (result.intent.confidence >= 0.5) {
         setTimeout(() => {
           router.push(result.intent.route);
           setShowSuggestions(false);
@@ -146,6 +204,13 @@ const PersistentInput: React.FC<PersistentInputProps> = ({ className }) => {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleHelpClick = async () => {
+    setShowHelp(true);
+    const helpMessage = await generateWelcomeMessage();
+    speak(helpMessage);
+    setTimeout(() => setShowHelp(false), 5000); // Hide help after 5 seconds
   };
 
   const handleNavigate = (route: string) => {
@@ -191,12 +256,33 @@ const PersistentInput: React.FC<PersistentInputProps> = ({ className }) => {
           mb: { xs: 0.5, sm: 2 },
         }}
       >
-        <InputComponent
-          onSendMessage={handleUserInput}
-          placeholder="Type or say what you want..."
-          disabled={isAnalyzing}
-          fullWidth
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ flex: 1 }}>
+            <InputComponent
+              onSendMessage={handleUserInput}
+              placeholder="Type or say what you want..."
+              disabled={isAnalyzing}
+              fullWidth
+            />
+          </Box>
+          <Tooltip title="Get help on how to use the AI assistant" placement="top">
+            <IconButton
+              onClick={handleHelpClick}
+              disabled={isAnalyzing}
+              sx={{
+                color: showHelp ? 'primary.main' : 'text.secondary',
+                backgroundColor: showHelp ? 'primary.main' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                },
+                transition: 'all 0.2s',
+              }}
+            >
+              <HelpIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Paper>
       <Collapse in={showSuggestions}>
         <Box sx={{ mt: 1, px: { xs: 0.5, sm: 0 } }}>
@@ -235,9 +321,6 @@ const PersistentInput: React.FC<PersistentInputProps> = ({ className }) => {
                 {analysisResult.intent.description}
               </Typography>
               <Box sx={{ mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" gutterBottom>
-                  Confidence: {Math.round(analysisResult.intent.confidence * 100)}%
-                </Typography>
                 <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                   {analysisResult.intent.keywords.map((keyword, index) => (
                     <Chip

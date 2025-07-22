@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import PersistentInput from '@/components/PersistentInput';
 
@@ -9,6 +9,13 @@ interface LayoutWithInputProps {
 }
 
 const LayoutWithInput: React.FC<LayoutWithInputProps> = ({ children }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
     <Box
       sx={{
@@ -36,26 +43,28 @@ const LayoutWithInput: React.FC<LayoutWithInputProps> = ({ children }) => {
       </Box>
 
       {/* Persistent Input - Fixed at bottom */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-          backgroundColor: 'background.default',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          p: { xs: 0.5, sm: 2 },
-          backdropFilter: 'blur(10px)',
-          width: '100vw',
-          boxSizing: 'border-box',
-        }}
-      >
-        <Box sx={{ maxWidth: { xs: '100vw', sm: 600 }, mx: 'auto' }}>
-          <PersistentInput />
+      {isClient && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            backgroundColor: 'background.default',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            p: { xs: 0.5, sm: 2 },
+            backdropFilter: 'blur(10px)',
+            width: '100vw',
+            boxSizing: 'border-box',
+          }}
+        >
+          <Box sx={{ maxWidth: { xs: '100vw', sm: 600 }, mx: 'auto' }}>
+            <PersistentInput />
+          </Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 };
