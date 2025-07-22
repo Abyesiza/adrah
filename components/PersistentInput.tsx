@@ -242,18 +242,18 @@ const PersistentInput: React.FC<PersistentInputProps> = ({ className }) => {
       <Paper
         elevation={isMobile ? 12 : 8}
         sx={{
-          p: { xs: 0.5, sm: 1.5 },
-          borderRadius: { xs: 2, sm: 3 },
+          p: { xs: 0.15, sm: 0.75 },
+          borderRadius: { xs: 1, sm: 2 },
           backgroundColor: 'background.paper',
           border: '1px solid',
           borderColor: 'divider',
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: 0.5,
+          gap: 0.15,
           maxWidth: { xs: '100vw', sm: 600 },
           mx: 'auto',
-          mb: { xs: 0.5, sm: 2 },
+          mb: { xs: 0.15, sm: 1 },
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
